@@ -89,7 +89,8 @@ class BukuController extends Controller
             'penerbit'     => 'required|string|max:100',
             'tahun_terbit' => 'required|integer',
             'stok'         => 'required|integer|min:0',
-            // TODO 4: Tambahkan validasi untuk berkas 'cover' (nullable|image|mimes:jpeg,png,jpg|max:2048)
+            // === TODO 4 (Validasi Cover di store) ===
+            'cover'        => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'judul.required'        => 'Judul buku wajib diisi.',
             'judul.max'             => 'Judul buku maksimal 100 karakter.',
@@ -107,8 +108,10 @@ class BukuController extends Controller
             'cover.max'             => 'Ukuran gambar maksimal 2 MB.',
         ]);
 
-        // TODO 4: Periksa jika ada berkas 'cover' yang diunggah ($request->hasFile('cover')),
-        // simpan berkas ke disk 'public' folder 'buku', dan masukkan path-nya ke $validated['cover']
+        // === TODO 4 (Simpan berkas cover ke folder 'buku' di disk 'public') ===
+        if ($request->hasFile('cover')) {
+            $validated['cover'] = $request->file('cover')->store('buku', 'public');
+        }
 
         Buku::create($validated);
 
@@ -145,7 +148,8 @@ class BukuController extends Controller
             'penerbit'     => 'required|string|max:100',
             'tahun_terbit' => 'required|integer',
             'stok'         => 'required|integer|min:0',
-            // TODO 4: Tambahkan validasi untuk berkas 'cover' (nullable|image|mimes:jpeg,png,jpg|max:2048)
+            // === TODO 4 (Validasi Cover di update) ===
+            'cover'        => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'judul.required'        => 'Judul buku wajib diisi.',
             'judul.max'             => 'Judul buku maksimal 100 karakter.',
@@ -163,9 +167,13 @@ class BukuController extends Controller
             'cover.max'             => 'Ukuran gambar maksimal 2 MB.',
         ]);
 
-        // TODO 5: Periksa jika ada berkas 'cover' baru yang diunggah:
-        // 1. Hapus berkas cover fisik lama dari Storage::disk('public') jika ada
-        // 2. Simpan berkas cover baru ke folder 'buku' pada disk 'public' dan simpan ke $validated['cover']
+        // === TODO 5 (Hapus cover lama & simpan cover baru ke storage) ===
+        if ($request->hasFile('cover')) {
+            if ($buku->cover && Storage::disk('public')->exists($buku->cover)) {
+                Storage::disk('public')->delete($buku->cover);
+            }
+            $validated['cover'] = $request->file('cover')->store('buku', 'public');
+        }
 
         $buku->update($validated);
 
@@ -185,7 +193,10 @@ class BukuController extends Controller
                 ->with('error', 'Buku tidak dapat dihapus karena sedang dalam status dipinjam.');
         }
 
-        // TODO 6: Hapus berkas fisik 'cover' dari Storage::disk('public') sebelum record buku dihapus jika data cover ada
+        // === TODO 6 (Hapus berkas fisik cover dari storage sebelum record buku dihapus) ===
+        if ($buku->cover && Storage::disk('public')->exists($buku->cover)) {
+            Storage::disk('public')->delete($buku->cover);
+        }
 
         $buku->delete();
 
